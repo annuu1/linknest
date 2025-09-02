@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import CustomerCard from "@/components/CustomerCard";
 
-type Campaign = { _id: string; name: string; content: string };
+type Campaign = { _id: string; name: string; content: string; team?: string };
 type Customer = { _id: string; phoneNumber: string; name: string; status: string };
 
 export default function CampaignsPage() {
@@ -22,13 +22,13 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     if (!selected) return;
-    fetch(`/api/campaigns/${selected._id}/customers?page=${page}&limit=10&phone=${search}`)
+    fetch(`/api/campaigns/${selected.team}/customers?page=${page}&limit=10&phone=${search}`)
       .then((res) => res.json())
       .then((data) => {
         setCustomers(data.data);
         setTotalPages(data.totalPages);
       });
-  }, [selected, page, search]);
+  }, [selected, selected?.team, page, search]);
 
   return (
     <div className="flex h-full">

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "10");
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const client = await clientPromise;
     const db = client.db("test");
 
-    const query: any = { team: new ObjectId(params.id) }; // adjust if relation is different
+    const query: any = { team: new ObjectId(id) }; // adjust if relation is different
     if (phone) {
       query.phoneNumber = { $regex: phone, $options: "i" };
     }
