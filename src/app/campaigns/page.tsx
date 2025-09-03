@@ -22,13 +22,17 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     if (!selected) return;
-    fetch(`/api/campaigns/${selected.team}/customers?page=${page}&limit=10&phone=${search}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setCustomers(data.data);
-        setTotalPages(data.totalPages);
-      });
-  }, [selected, selected?.team, page, search]);
+  
+    const delay = setTimeout(() => {
+      fetch(`/api/campaigns/${selected._id}/customers?page=${page}&limit=10&phone=${search}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setCustomers(data.data);
+          setTotalPages(data.totalPages);
+        });
+    }, 400);
+    return () => clearTimeout(delay);
+  }, [selected?._id, page, search]);
 
   return (
     <div className="flex h-full">

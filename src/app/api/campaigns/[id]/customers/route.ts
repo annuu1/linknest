@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const { id } = await context.params;
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1");
@@ -13,28 +16,54 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const client = await clientPromise;
     const db = client.db("test");
 
-    const query: any = { team: new ObjectId(id) }; // adjust if relation is different
+    const pipeline: any[] = [
+      { $match: { campaignId: new ObjectId(id) } }, // filter by campaign
+      {
+        $lookup: {
+          from: "customers",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      { $unwind: "$customer" }, // flatten
+    ];
+
+    // Optional phone filter
     if (phone) {
-      query.phoneNumber = { $regex: phone, $options: "i" };
+      pipeline.push({
+        $match: { "customer.phoneNumber": { $regex: phone, $options: "i" } },
+      });
     }
 
-    const customers = await db
-      .collection("customers")
-      .find(query)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray();
+    // Count total
+    const total = await db.collection("messages").aggregate(pipeline).toArray();
+    const totalCount = total.length;
 
-    const total = await db.collection("customers").countDocuments(query);
+    // Pagination
+    pipeline.push({ $skip: (page - 1) * limit });
+    pipeline.push({ $limit: limit });
+
+    const results = await db.collection("messages").aggregate(pipeline).toArray();
+
+    // Map to only return customer info (you can also include message info if you want)
+    const customers = results.map((msg) => ({
+      ...msg.customer,
+      messageStatus: msg.status,
+      sentAt: msg.sentAt,
+    }));
 
     return NextResponse.json({
       data: customers,
       page,
-      total,
-      totalPages: Math.ceil(total / limit),
+      total: totalCount,
+      totalPages: Math.ceil(totalCount / limit),
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Failed to fetch customers" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch customers" },
+      { status: 500 }
+    );
   }
 }
