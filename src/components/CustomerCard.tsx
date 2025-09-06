@@ -13,9 +13,13 @@ type Customer = {
 export default function CustomerCard({
   customer,
   onUpdate,
+  selected,
+  onSelect,
 }: {
   customer: Customer;
   onUpdate?: (c: Customer) => void;
+  selected?: boolean;
+  onSelect?: (id: string, checked: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(customer.name);
@@ -53,7 +57,7 @@ export default function CustomerCard({
       onUpdate?.(updated);
     } catch (err) {
       console.error("Failed to update flag", err);
-      setFlag(customer.flag || "none"); // rollback if failed
+      setFlag(customer.flag || "none");
     } finally {
       setLoading(false);
     }
@@ -61,7 +65,15 @@ export default function CustomerCard({
 
   return (
     <div className="border rounded p-3 flex justify-between items-start">
-      <div>
+      {/* Checkbox for selection */}
+      <input
+        type="checkbox"
+        checked={!!selected}
+        onChange={(e) => onSelect?.(customer._id, e.target.checked)}
+        className="mt-1 mr-2"
+      />
+
+      <div className="flex-1">
         <p className="font-semibold">{customer.phoneNumber}</p>
         {editing ? (
           <input
